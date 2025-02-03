@@ -1,3 +1,4 @@
+# ✅ Instalar dependências (já incluídas no requirements.txt)
 import streamlit as st
 import os
 import json
@@ -8,7 +9,6 @@ from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, Te
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import FAISS
 from langchain.embeddings.huggingface import HuggingFaceEmbeddings
-import openai  # Para chamar GPT-4
 
 # 🚀 Configuração Inicial
 st.set_page_config(page_title="Chatbot MGA Project", layout="wide")
@@ -64,11 +64,10 @@ if uploaded_files:
     st.sidebar.success("📄 Arquivo(s) carregado(s) com sucesso!")
 
 # 📚 **Carregar Arquivos de Todas as Equipes**
-@st.cache_data
-def load_documents(files):
-    documents = []
-    for file_name in files:
-        file_path = os.path.join(team_dirs[st.session_state["user_team"]], file_name)
+documents = []
+for team, folder in team_dirs.items():
+    for file_name in os.listdir(folder):
+        file_path = os.path.join(folder, file_name)
         if file_name.endswith(".pdf"):
             loader = PyPDFLoader(file_path)
             documents.extend(loader.load())
@@ -82,10 +81,6 @@ def load_documents(files):
             df = pd.read_excel(file_path) if file_name.endswith(".xlsx") else pd.read_csv(file_path)
             text_content = "\n".join(df.astype(str).apply(lambda x: " | ".join(x), axis=1))
             documents.append(text_content)
-    return documents
-
-selected_files = os.listdir(team_dirs[st.session_state["user_team"]])  # Selecionar arquivos da equipe
-documents = load_documents(selected_files)
 
 # ✅ Verificar se documentos foram carregados
 if not documents:
@@ -100,28 +95,17 @@ texts = text_splitter.split_documents(documents)
 vectorstore = FAISS.from_documents(texts, HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2"))
 
 # 💬 **Entrada de Pergunta**
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-
-query = st.chat_input("💬 Pergunte sobre os arquivos:")
+query = st.text_input("💬 Faça uma pergunta sobre os arquivos:")
 
 if query:
     try:
         results = vectorstore.similarity_search(query, k=3)
         context = "\n".join([f"- {doc[:300]}..." for doc in results])
-
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "Você é um assistente especializado em responder perguntas sobre documentos."},
-                {"role": "user", "content": f"Baseado nos seguintes documentos:\n{context}\n\nPergunta: {query}"}
-            ]
-        )
-
-        chatbot_response = response["choices"][0]["message"]["content"]
-        st.session_state.chat_history.append({"role": "bot", "content": chatbot_response})
+        response = f"Baseado nos documentos:\n{context}\n\nResposta: (AQUI INSIRA A CHAMADA PARA GPT)"
         st.write("### 🎯 Resposta:")
-        st.success(chatbot_response)
-
+        st.success(response)
     except Exception as e:
         st.error(f"Erro ao processar: {e}")
+
+# 🔗 **Mostrar o Link do Render**
+st.write("🔗 Acesse o chatbot em:", st.secrets["RENDER_LINK"])
