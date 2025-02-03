@@ -1,0 +1,15 @@
+langchain
+langchain-community
+streamlit
+pyngrok
+sentence-transformers
+pypdf
+g4f
+requests
+faiss-cpu
+pandas
+openpyxl
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+googleapiclient
